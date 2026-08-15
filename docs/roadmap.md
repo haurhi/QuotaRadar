@@ -17,6 +17,13 @@ Quota Radar's core goal is to reduce quota anxiety: users should not need to rep
 - Secrets stay local. Source code, tests, README files, and GitHub Releases must never contain real API keys or cookies.
 - Every provider needs clear diagnostics: usable, quota unknown, credential expired, connection failed, unsupported API, or quota-consuming check.
 
+## v0.4.9 AnySearch Session Rotation And Claude Weekly Quotas
+
+- [x] Follow AnySearch's migrated `/api/auth/refresh` contract so an expired 30-minute access token rotates without requiring another login.
+- [x] Use the current AnySearch billing endpoint and treat provider-specific retired-session 404 responses as refresh or reauthentication signals.
+- [x] Parse Claude's explicitly returned model- and surface-scoped weekly quota windows, including the current Fable 5 scoped limit, without inferring an Opus label from internal buckets.
+- [x] Render Claude model-scoped weekly quotas as subordinate rows beneath the overall weekly quota and reveal them automatically when present.
+
 ## v0.4.8 Provider Quota Contract Repairs
 
 - [x] Track structured quota availability for every provider and show the shared Key Quota exhausted wording only when zero remaining is verified.

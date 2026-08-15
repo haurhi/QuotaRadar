@@ -68,24 +68,24 @@ assert_match 'CFBundleDisplayName' \
 assert_match 'Quota Radar' \
   "QuotaRadar/Info.plist" \
   "App bundle display name should be Quota Radar"
-assert_match '<string>0\.4\.8</string>' \
+assert_match '<string>0\.4\.9</string>' \
   "QuotaRadar/Info.plist" \
-  "Quota Radar 0.4.8 should be recorded in Info.plist"
-assert_match '<string>22</string>' \
+  "Quota Radar 0.4.9 should be recorded in Info.plist"
+assert_match '<string>23</string>' \
   "QuotaRadar/Info.plist" \
-  "Quota Radar Build 22 should be recorded in Info.plist"
-assert_match 'Current version: `v0\.4\.8`\.' \
+  "Quota Radar Build 23 should be recorded in Info.plist"
+assert_match 'Current version: `v0\.4\.9`\.' \
   "README.md" \
-  "English README should show v0.4.8 as the current version"
-assert_match '当前版本：`v0\.4\.8`。' \
+  "English README should show v0.4.9 as the current version"
+assert_match '当前版本：`v0\.4\.9`。' \
   "README.zh-Hans.md" \
-  "Simplified Chinese README should show v0.4.8 as the current version"
-assert_match '^## v0\.4\.8 Provider Quota Contract Repairs$' \
+  "Simplified Chinese README should show v0.4.9 as the current version"
+assert_match '^## v0\.4\.9 AnySearch Session Rotation And Claude Weekly Quotas$' \
   "docs/roadmap.md" \
-  "English roadmap should document the v0.4.8 provider quota repairs"
-assert_match '^## v0\.4\.8 服务商额度契约修复$' \
+  "English roadmap should document the v0.4.9 authentication and quota-window repairs"
+assert_match '^## v0\.4\.9 AnySearch 会话轮换与 Claude 周额度$' \
   "docs/roadmap.zh-Hans.md" \
-  "Simplified Chinese roadmap should document the v0.4.8 provider quota repairs"
+  "Simplified Chinese roadmap should document the v0.4.9 authentication and quota-window repairs"
 assert_no_match 'LSUIElement' \
   "QuotaRadar/Info.plist" \
   "QuotaRadar must appear in the macOS Dock after launch"
@@ -431,16 +431,16 @@ assert_match 'QuotaMonitor\.refreshCandidateKeys' \
 assert_match 'targetProviders: Set\(\[provider\]\)' \
   "scripts/live_acceptance_main.swift" \
   "Live acceptance should derive shared dashboard authorization candidates per provider"
-assert_match '2026-06-23 13:06 CST' \
+assert_match 'lastVerifiedAt: "2026-08-15 CST"' \
   "QuotaRadar/Models/APIKey.swift" \
-  "Provider trust calibration metadata should record the latest redacted live acceptance timestamp"
-assert_match '2026-06-23 13:06 CST' \
+  "Claude provider trust calibration metadata should record the latest redacted live acceptance timestamp"
+assert_match 'Latest local redacted calibration: 2026-08-15 CST' \
   "docs/providers.md" \
   "English provider docs should record the latest redacted live acceptance timestamp"
-assert_match '2026-06-23 13:06 CST' \
+assert_match '最近一次本机脱敏校准：2026-08-15 CST' \
   "docs/providers.zh-Hans.md" \
   "Chinese provider docs should record the latest redacted live acceptance timestamp"
-assert_match 'Live acceptance snapshot: 2026-08-01 CST' \
+assert_match 'Live acceptance snapshot: 2026-08-15 CST' \
   "docs/provider-calibration.md" \
   "Provider calibration backlog should retain the latest sanitized live acceptance snapshot summary"
 assert_match 'Aliyun Coding Plan.*Missing saved account' \
@@ -467,7 +467,7 @@ assert_match 'org:admin' \
 assert_match 'Kimi WebBridge.*live browser observation' \
   "docs/provider-calibration.md" \
   "Provider calibration backlog should record that browser-level Claude observation ran"
-assert_match 'Claude web usage/prepaid credits.*Live browser observation 2026-06-23' \
+assert_match 'Claude web usage/prepaid credits.*Live browser observation 2026-08-15' \
   "docs/provider-calibration.md" \
   "Provider calibration backlog should record the Claude prepaid browser observation"
 assert_match 'prepaid/credits' \
@@ -485,13 +485,13 @@ assert_match '未确认公开 prepaid credit balance API' \
 assert_match 'Claude Subscription OAuth usage/limits.*文档观察 2026-06-23' \
   "docs/provider-calibration.zh-Hans.md" \
   "Chinese Claude OAuth calibration should record docs-only observation separately from live endpoint proof"
-assert_match 'Claude web usage/prepaid credits.*浏览器实测 2026-06-23' \
+assert_match 'Claude web usage/prepaid credits.*2026-08-15 浏览器实测' \
   "docs/provider-calibration.zh-Hans.md" \
   "Chinese provider calibration backlog should record the Claude prepaid browser observation"
 assert_match 'prepaid/credits' \
   "docs/provider-calibration.zh-Hans.md" \
   "Chinese Claude prepaid calibration should record the observed web endpoint without account identifiers"
-assert_match 'live acceptance 快照：2026-08-01 CST' \
+assert_match 'live acceptance 快照：2026-08-15 CST' \
   "docs/provider-calibration.zh-Hans.md" \
   "Chinese provider calibration backlog should retain the latest sanitized live acceptance snapshot summary"
 assert_match 'Aliyun Coding Plan.*缺少已保存账号' \
@@ -694,9 +694,9 @@ if uploaded_paths != expected_paths:
 for readme_path in ("README.md", "README.zh-Hans.md"):
     readme = Path(readme_path).read_text()
     try:
-        command = readme.split("gh release create v0.4.8", 1)[1].split("```", 1)[0]
+        command = readme.split("gh release create v0.4.9", 1)[1].split("```", 1)[0]
     except IndexError:
-        sys.exit(f"FAIL: {readme_path} should document the v0.4.8 manual release command")
+        sys.exit(f"FAIL: {readme_path} should document the v0.4.9 manual release command")
     for artifact in expected_paths:
         if artifact not in command:
             sys.exit(f"FAIL: {readme_path} manual release command is missing {artifact}")
@@ -2985,6 +2985,15 @@ if "summary: activitySummary" not in quota_windows:
 if "speedSummary: .empty" not in quota_windows:
     print("FAIL: Expanded account quota blocks should render only recent changes, not speed-risk hints", file=sys.stderr)
     sys.exit(1)
+if "claudeWeeklyModelWindows" not in quota_windows or "primaryWindows" not in quota_windows:
+    print("FAIL: Claude model-specific weekly quotas should be grouped beneath the parent weekly quota", file=sys.stderr)
+    sys.exit(1)
+if "ProviderQuotaAccountModelQuotaRow(" not in quota_windows:
+    print("FAIL: Claude model-specific weekly quotas should use a visually subordinate child row", file=sys.stderr)
+    sys.exit(1)
+if 'window.name == "week"' not in quota_windows:
+    print("FAIL: Claude model-specific quota children should attach to the overall weekly quota row", file=sys.stderr)
+    sys.exit(1)
 try:
     meta_panel = source.split("struct ProviderQuotaAccountMetaPanel: View", 1)[1].split("struct ProviderQuotaTimingColumn: View", 1)[0]
 except IndexError:
@@ -3768,6 +3777,18 @@ PY
 assert_match 'ProviderQuotaAccountQuotaWindows' \
   "QuotaRadar/Views/SettingsView.swift" \
   "Expanded provider quota rows should render quota windows inside account groups"
+assert_match 'provider == \.claudeSubscription && keys\.contains \{ key in' \
+  "QuotaRadar/Views/SettingsView.swift" \
+  "Claude should recognize when model-specific quota windows are available"
+assert_match 'window\.name\.hasPrefix\("week "\)' \
+  "QuotaRadar/Views/SettingsView.swift" \
+  "Claude model-specific weekly quota windows should drive automatic expansion"
+assert_match '_isExpanded = State\(initialValue: provider == \.claudeSubscription && stat\.keys\.contains \{ key in' \
+  "QuotaRadar/Views/SettingsView.swift" \
+  "Claude model quota expansion should be initialized from restored persisted quota data"
+assert_match 'navigationStore\.focusedProvider == provider \|\| shouldAutoExpandModelQuotas' \
+  "QuotaRadar/Views/SettingsView.swift" \
+  "Claude model-specific quota rows should be visible without requiring a hidden expansion click"
 assert_no_match 'ProviderCard\(provider: stat\.provider' \
   "QuotaRadar/Views/SettingsView.swift" \
   "Quota monitoring should not continue to render one large card per provider"
@@ -4591,7 +4612,7 @@ assert_match 'key\.lastUpdated = Date\(\)' \
 assert_no_match 'api.anysearch.ai' \
   "QuotaRadar/Services/QuotaService.swift" \
   "AnySearch must not use the obsolete .ai endpoint"
-assert_match 'https://www\.anysearch\.com/api/api/user/billing/overview' \
+assert_match 'https://www\.anysearch\.com/api/user/billing/overview' \
   "QuotaRadar/Services/QuotaService.swift" \
   "AnySearch should query the current dashboard billing overview endpoint"
 assert_match 'request\.setValue\("Bearer .*credential\.accessToken.*forHTTPHeaderField: "Authorization"' \
@@ -4600,18 +4621,27 @@ assert_match 'request\.setValue\("Bearer .*credential\.accessToken.*forHTTPHeade
 assert_match 'QuotaParsers\.parseAnySearchBillingOverview' \
   "QuotaRadar/Services/QuotaService.swift" \
   "AnySearch refresh should parse the current billing overview response"
+assert_match 'case 404:' \
+  "QuotaRadar/Services/QuotaService.swift" \
+  "AnySearch should handle the provider-specific retired-session HTTP 404 explicitly"
+assert_match 'throw QuotaError\.unauthorizedStatus\(404\)' \
+  "QuotaRadar/Services/QuotaService.swift" \
+  "AnySearch retired-session 404 should trigger refresh or reauthentication instead of schema drift"
 assert_no_match 'if credential\.isExpired\(at: Date\(\)\.addingTimeInterval\(30\)\)' \
   "QuotaRadar/Services/QuotaService.swift" \
   "AnySearch should try the current access token before refreshing an advisory local expiry"
 assert_no_match 'AnySearchDailyUsageRequest|parseAnySearchDailyUsage|api/api/user/usage/summary' \
   "QuotaRadar/Services/QuotaService.swift" \
   "AnySearch must not silently retain the retired daily usage-summary contract"
-assert_match 'https://www\.anysearch\.com/api/ssuser/auth/refresh' \
+assert_match 'https://www\.anysearch\.com/api/auth/refresh' \
   "QuotaRadar/Services/QuotaService.swift" \
   "AnySearch should use the current www console refresh endpoint"
 assert_match 'refresh_token' \
   "QuotaRadar/Services/QuotaService.swift" \
   "AnySearch refresh should send and parse the verified refresh-token contract"
+assert_match 'statusCode == 403 \|\| httpResponse\.statusCode == 404' \
+  "QuotaRadar/Services/QuotaService.swift" \
+  "AnySearch retired refresh sessions should require fresh dashboard authorization"
 assert_match 'refreshedCredential' \
   "QuotaRadar/Services/QuotaService.swift" \
   "AnySearch quota results should return rotated credentials for optimistic persistence"
@@ -7057,6 +7087,12 @@ require(L10n.t(.healthFailed, language: .korean) == "확인 실패", "Korean fai
 require(L10n.quotaPeriodTitle("5h", language: .traditionalChinese) == "5 小時", "Traditional Chinese five-hour quota period should be localized")
 require(L10n.quotaPeriodTitle("week", language: .japanese) == "週", "Japanese week quota period should be localized")
 require(L10n.quotaPeriodTitle("month", language: .korean) == "월", "Korean month quota period should be localized")
+require(L10n.quotaPeriodTitle("week Fable 5", language: .simplifiedChinese) == "Fable 5 周额度", "Simplified Chinese Claude model quota should use a natural model-first weekly label")
+require(L10n.quotaPeriodTitle("week Opus", language: .simplifiedChinese) == "Opus 周额度", "Simplified Chinese Opus quota should not expose the internal week-prefixed window name")
+require(L10n.quotaPeriodTitle("week Fable 5", language: .english) == "Fable 5 Weekly", "English Claude model quota should use a natural model-first weekly label")
+require(L10n.quotaPeriodGroupTitle("week", language: .simplifiedChinese) == "周额度", "Claude parent weekly quota should have an explicit grouped title in Simplified Chinese")
+require(L10n.quotaPeriodGroupTitle("week", language: .english) == "Weekly quota", "Claude parent weekly quota should have an explicit grouped title in English")
+require(L10n.quotaModelScopeTitle("week Fable 5") == "Fable 5", "Claude model child labels should omit the repeated weekly quota wording")
 require(L10n.quotaPeriodCompactTitle("5h", language: .simplifiedChinese) == "5h", "Sparkline five-hour period marker should stay compact in Chinese")
 require(L10n.quotaPeriodCompactTitle("week", language: .simplifiedChinese) == "周", "Sparkline weekly period marker should stay compact in Chinese")
 require(L10n.quotaPeriodCompactTitle("month", language: .simplifiedChinese) == "月", "Sparkline monthly period marker should stay compact in Chinese")
@@ -9291,6 +9327,10 @@ require(anySearchEnvelope.remaining == 497 && anySearchEnvelope.limit == 1000, "
 require(anySearchEnvelope.planDisplayName == "Free Plan", "AnySearch current envelope should preserve the plan name")
 require(anySearchEnvelope.quotaText == .localized(.dailyRequestsUsageFormat, "503", "497", "1000"), "AnySearch current envelope should preserve daily usage")
 
+let anySearchAugustEnvelope = try! QuotaParsers.parseAnySearchBillingOverview(Data(#"{"code":0,"data":{"tier_code":"free","tier_name":"Free Plan","remaining":1000,"used":0,"total":1000,"total_calls":0,"current_month_calls":0,"usage_stats_available":true,"rate_limit_qps":10,"rate_limit_unlimited":false,"reset_period":"daily","next_reset_at":null,"upgrade_hint":null,"request_id":"request-redacted"},"message":"Success."}"#.utf8))
+require(anySearchAugustEnvelope.remaining == 1000 && anySearchAugustEnvelope.limit == 1000, "AnySearch should parse the August 2026 billing contract with usage metadata")
+require(anySearchAugustEnvelope.quotaText == .localized(.dailyRequestsUsageFormat, "0", "1000", "1000"), "AnySearch August 2026 billing contract should preserve daily usage")
+
 let anySearchMonthly = try! QuotaParsers.parseAnySearchBillingOverview(Data(#"{"tier_code":"pro","tier_name":"Pro","remaining":900,"used":100,"total":1000,"reset_period":"monthly","next_reset_at":"2026-08-10T00:00:00Z"}"#.utf8))
 require(anySearchMonthly.quotaText == .localized(.monthlyRequestsUsageFormat, "100", "900", "1000"), "AnySearch monthly overview must not be mislabeled as daily")
 require(anySearchMonthly.resetAt == ISO8601DateFormatter().date(from: "2026-08-10T00:00:00Z"), "AnySearch should retain a valid official next reset")
@@ -9321,8 +9361,8 @@ for invalidAnySearchJSON in [
     }
 }
 
-require(AnySearchBillingOverviewRequest.url.absoluteString == "https://www.anysearch.com/api/api/user/billing/overview", "AnySearch overview URL must match the current frontend helper contract")
-require(AnySearchRefreshRequest.url.absoluteString == "https://www.anysearch.com/api/ssuser/auth/refresh", "AnySearch refresh URL must use the www origin")
+require(AnySearchBillingOverviewRequest.url.absoluteString == "https://www.anysearch.com/api/user/billing/overview", "AnySearch overview URL must match the current frontend helper contract")
+require(AnySearchRefreshRequest.url.absoluteString == "https://www.anysearch.com/api/auth/refresh", "AnySearch refresh URL must match the current www console contract")
 require(QuotaError.unauthorizedStatus(403).httpStatus == 403, "Status-bearing unauthorized errors should preserve exact HTTP status")
 require(QuotaError.schemaDriftStatus(200).httpStatus == 200, "Status-bearing schema drift should preserve HTTP 200")
 require(QuotaError.schemaDriftStatus(404).httpStatus == 404, "Status-bearing schema drift should preserve HTTP 404")
@@ -9643,19 +9683,32 @@ require(claudeMax20xCapabilityOrganizationContext.planDisplayName == "Max 20x", 
 let claudeUsage = try! QuotaParsers.parseClaudeSubscriptionUsage(Data("""
 {"five_hour":{"utilization":24.5,"resets_at":"2026-06-09T10:00:00Z"},"seven_day":{"utilization":"70","resets_at":"2026-06-15T00:00:00Z"},"seven_day_opus":{"utilization":95,"resets_at":"2026-06-15T00:00:00Z"}}
 """.utf8))
-require(claudeUsage.remaining == 3000, "Claude subscription should use the tightest remaining percentage from 5h and weekly windows")
+require(claudeUsage.remaining == 3000, "Claude subscription account availability should use the tightest global five-hour or weekly window")
 require(claudeUsage.quotaAvailability == .available, "Positive Claude percentage quota should be available")
 require(claudeUsage.limit == 10000, "Claude subscription percentage limit should use basis points")
-require(claudeUsage.quotaLabel == "5h 75.5% · week 30%", "Claude subscription should display five-hour and weekly remaining percentages")
+require(claudeUsage.quotaLabel == "5h 75.5% · week 30% · week Opus 5%", "Claude subscription should display five-hour, overall weekly, and model-specific weekly percentages")
 require(claudeUsage.quotaText?.kind == .quotaWindows, "Claude subscription should carry structured quota-window descriptors")
-require(claudeUsage.quotaText?.quotaWindows.count == 2, "Claude subscription should keep the stable five-hour and weekly windows in compact UI")
+require(claudeUsage.quotaText?.quotaWindows.count == 3, "Claude subscription should retain every returned supported quota window")
 require(claudeUsage.quotaText?.quotaWindows.first(where: { $0.name == "5h" })?.resetAt != nil, "Claude five-hour quota window should preserve reset timestamp")
 require(claudeUsage.quotaText?.quotaWindows.first(where: { $0.name == "week" })?.resetAt != nil, "Claude weekly quota window should preserve reset timestamp")
 require(claudeUsage.resetAt != nil, "Claude subscription should expose the tightest quota window reset timestamp")
 require(claudeUsage.planEndsAt == nil, "Claude usage endpoint should not invent subscription end time")
+let claudeUsageWithModelWindows = try! QuotaParsers.parseClaudeSubscriptionUsage(Data("""
+{"five_hour":{"utilization":7,"resets_at":"2026-08-13T11:40:00Z"},"seven_day":{"utilization":98,"resets_at":"2026-08-16T06:59:59Z"},"seven_day_opus":{"utilization":40,"resets_at":"2026-08-16T06:59:59Z"},"seven_day_sonnet":{"utilization":25,"resets_at":"2026-08-16T06:59:59Z"},"seven_day_omelette":{"utilization":100,"resets_at":"2026-08-16T06:59:59Z"},"seven_day_cowork":{"utilization":30,"resets_at":"2026-08-16T06:59:59Z"},"seven_day_oauth_apps":{"utilization":15,"resets_at":"2026-08-16T06:59:59Z"}}
+""".utf8))
+require(claudeUsageWithModelWindows.quotaText?.quotaWindows.map(\.name) == ["5h", "week", "week Claude Code", "week Cowork", "week Fable", "week Opus", "week Sonnet"], "Claude should retain every current model-specific weekly quota window")
+require(claudeUsageWithModelWindows.remaining == 200 && claudeUsageWithModelWindows.quotaAvailability == .available, "An exhausted Claude model scope must not mark an available overall weekly quota as exhausted")
+let claudeUsageWithScopedLimits = try! QuotaParsers.parseClaudeSubscriptionUsage(Data("""
+{"five_hour":{"utilization":12,"resets_at":"2026-08-13T12:00:00Z"},"seven_day":{"utilization":99,"resets_at":"2026-08-16T07:00:00Z"},"seven_day_opus":null,"nimbus_quill":{"utilization":35,"resets_at":"2026-08-16T07:00:00Z"},"limits":[{"kind":"weekly_scoped","percent":100,"resets_at":"2026-08-16T07:00:00Z","scope":{"model":{"id":null,"display_name":"Fable"},"surface":null}}]}
+""".utf8))
+require(claudeUsageWithScopedLimits.quotaText?.quotaWindows.first(where: { $0.name == "week Opus" }) == nil, "Claude should not expose the internal nimbus_quill bucket as an Opus quota")
+require(claudeUsageWithScopedLimits.quotaText?.quotaWindows.first(where: { $0.name == "week Fable 5" })?.percentText == "0%", "Claude should present the exhausted scoped Fable quota as Fable 5")
+require(claudeUsageWithScopedLimits.remaining == 100 && claudeUsageWithScopedLimits.quotaAvailability == .available, "An exhausted Fable 5 scope must preserve the available overall Claude weekly quota")
 let claudeSubscriptionDisplayKey = APIKey(name: "CLAUDE_SUBSCRIPTION_COOKIE", key: "cookie", provider: .claudeSubscription, quotaText: claudeUsage.quotaText, quotaLabel: claudeUsage.quotaLabel)
 let claudeSubscriptionStat = ProviderStats(provider: .claudeSubscription, keys: [claudeSubscriptionDisplayKey])
-require(claudeSubscriptionStat.totalRemainingDisplayText == "week 30%", "Claude subscription provider remaining should display the tightest percentage window")
+AppLanguageStore.shared.language = .simplifiedChinese
+require(claudeSubscriptionStat.totalRemainingDisplayText == "周 30%", "Claude subscription provider summary should use the global weekly window, not a subordinate model scope")
+AppLanguageStore.shared.language = .english
 
 let claudeUsageWithMissingFiveHourReset = try! QuotaParsers.parseClaudeSubscriptionUsage(Data("""
 {"five_hour":{"limit_dollars":null,"remaining_dollars":null,"resets_at":null,"used_dollars":null,"utilization":100},"seven_day":{"limit_dollars":null,"remaining_dollars":null,"resets_at":"2026-06-15T00:00:00.000000Z","used_dollars":null,"utilization":37.5},"limits":[{"group":"default","is_active":true,"kind":"rolling","percent":100,"resets_at":null,"severity":"normal"}],"spend":{"enabled":false,"percent":0}}

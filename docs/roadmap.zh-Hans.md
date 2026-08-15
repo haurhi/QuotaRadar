@@ -17,6 +17,13 @@ Quota Radar 的核心目标是降低“额度焦虑”：不用反复登录各�
 - 所有真实凭据只保存在本机 secret store；源码、测试、README、Release 都不能包含真实 key、登录授权或 Cookie。
 - 每个 provider 都要有清楚的诊断状态：可用、额度未知、凭据过期、连接失败、接口不支持、检查会消耗额度。
 
+## v0.4.9 AnySearch 会话轮换与 Claude 周额度
+
+- [x] 跟进 AnySearch 迁移后的 `/api/auth/refresh` 契约，使 30 分钟 access token 到期后可以自动轮换，无需再次登录。
+- [x] 使用 AnySearch 当前 billing 接口，并将服务商针对旧会话返回的 404 识别为刷新或重新认证信号。
+- [x] 解析 Claude 明确返回的模型和使用面周额度，包括当前 Fable 5 scoped limit，不再根据内部额度桶推断 Opus 名称。
+- [x] 将 Claude 模型范围周额度作为总周额度的子行展示，并在存在这些额度时自动展开。
+
 ## v0.4.8 服务商额度契约修复
 
 - [x] 为所有服务商保存结构化额度可用状态；只有明确验证剩余为零时，才显示统一的 Key Quota 已耗尽文案。

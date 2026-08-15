@@ -754,7 +754,8 @@ for window in windows {
         statusPanelBounds = (x, y, width, height)
     }
 
-    if owner == "Quota Radar", name.localizedCaseInsensitiveContains("Quota Radar"), width >= 880, height >= 580 {
+    if owner == "Quota Radar", (window[kCGWindowLayer as String] as? Int ?? -1) == 0,
+       width >= 880, height >= 580 {
         mainWindowID = "\(id)"
     }
 }
@@ -927,7 +928,8 @@ for window in windows {
         report.append("id=\(id) owner=\(owner) name=\(name) width=\(width) height=\(height)")
     }
 
-    if owner == "Quota Radar", name.localizedCaseInsensitiveContains("Quota Radar"), width >= 880, height >= 580 {
+    if owner == "Quota Radar", (window[kCGWindowLayer as String] as? Int ?? -1) == 0,
+       width >= 880, height >= 580 {
         mainWindowID = "\(id)"
     }
 }

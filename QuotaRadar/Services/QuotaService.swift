@@ -56,11 +56,11 @@ struct QuotaResult {
 }
 
 enum AnySearchBillingOverviewRequest {
-    static let url = URL(string: "https://www.anysearch.com/api/api/user/billing/overview")!
+    static let url = URL(string: "https://www.anysearch.com/api/user/billing/overview")!
 }
 
 enum AnySearchRefreshRequest {
-    static let url = URL(string: "https://www.anysearch.com/api/ssuser/auth/refresh")!
+    static let url = URL(string: "https://www.anysearch.com/api/auth/refresh")!
 }
 
 enum SerpAPIAccountRequest {
@@ -1436,8 +1436,13 @@ enum QuotaParsers {
         let specs = [
             (field: "five_hour", name: "5h"),
             (field: "seven_day", name: "week"),
+            (field: "seven_day_oauth_apps", name: "week Claude Code"),
+            (field: "seven_day_cowork", name: "week Cowork"),
+            (field: "seven_day_omelette", name: "week Fable"),
+            (field: "seven_day_opus", name: "week Opus"),
+            (field: "seven_day_sonnet", name: "week Sonnet"),
         ]
-        let windows = specs.compactMap { spec -> PercentQuotaWindow? in
+        var windows = specs.compactMap { spec -> PercentQuotaWindow? in
             guard let window = usage[spec.field] as? [String: Any],
                   let usedPercent = firstDoubleValue(
                     in: window,
@@ -1456,18 +1461,69 @@ enum QuotaParsers {
             )
         }
 
+        if let scopedLimits = usage["limits"] as? [[String: Any]] {
+            for limit in scopedLimits {
+                guard (limit["kind"] as? String) == "weekly_scoped",
+                      let usedPercent = firstDoubleValue(
+                        in: limit,
+                        keys: ["percent", "utilization", "used_percentage", "usedPercent"]
+                      ),
+                      let scope = limit["scope"] as? [String: Any],
+                      let rawScopedName = claudeScopedLimitName(from: scope) else {
+                    continue
+                }
+                let scopedName = rawScopedName.compare(
+                    "Fable",
+                    options: [.caseInsensitive, .diacriticInsensitive]
+                ) == .orderedSame ? "Fable 5" : rawScopedName
+
+                let window = PercentQuotaWindow(
+                    name: "week \(scopedName)",
+                    remainingPercent: max(0, 100 - usedPercent),
+                    resetAt: firstDateValue(
+                        in: limit,
+                        keys: ["resets_at", "reset_at", "resetsAt", "resetAt"]
+                    )
+                )
+                if let existingIndex = windows.firstIndex(where: {
+                    $0.name.compare(window.name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+                }) {
+                    windows[existingIndex] = window
+                } else {
+                    windows.append(window)
+                }
+            }
+        }
+
         guard !windows.isEmpty else {
             throw QuotaError.invalidResponse
         }
 
         let orderedWindows = orderPercentWindows(windows)
+        let globalWindows = orderedWindows.filter { window in
+            window.name == "5h" || window.name == "week"
+        }
         return percentQuotaResult(
             windows: orderedWindows,
+            governingWindows: globalWindows.isEmpty ? orderedWindows : globalWindows,
             planDisplayName: planDisplayName(from: object),
             label: orderedWindows
                 .map { window in "\(window.name) \(formatPercent(window.remainingPercent))" }
                 .joined(separator: " · ")
         )
+    }
+
+    private static func claudeScopedLimitName(from scope: [String: Any]) -> String? {
+        for dimension in ["model", "surface"] {
+            guard let value = scope[dimension] as? [String: Any] else { continue }
+            for key in ["display_name", "displayName", "name", "id"] {
+                if let name = value[key] as? String {
+                    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty { return trimmed }
+                }
+            }
+        }
+        return nil
     }
 
     static func parseClaudeSubscriptionDetails(_ data: Data) throws -> SubscriptionLifecycleInfo {
@@ -1969,17 +2025,19 @@ enum QuotaParsers {
 
     private static func percentQuotaResult(
         windows: [PercentQuotaWindow],
+        governingWindows: [PercentQuotaWindow]? = nil,
         planEndsAt: Date? = nil,
         planDisplayName: String? = nil,
         label: String,
         codexResetCreditsRemaining: Int? = nil
     ) -> QuotaResult {
-        let tightest = windows.min { lhs, rhs in
+        let effectiveWindows = governingWindows ?? windows
+        let tightest = effectiveWindows.min { lhs, rhs in
             lhs.remainingPercent < rhs.remainingPercent
         }
         let remainingPercent = tightest?.remainingPercent ?? 0
         let basisPoints = Int((max(0, min(100, remainingPercent)) * 100).rounded(.down))
-        let resetAt = windows
+        let resetAt = effectiveWindows
             .sorted { lhs, rhs in lhs.remainingPercent < rhs.remainingPercent }
             .first { $0.resetAt != nil }?
             .resetAt
@@ -3999,7 +4057,7 @@ actor QuotaService {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw QuotaError.invalidResponse
         }
-        if httpResponse.statusCode == 400 || httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+        if httpResponse.statusCode == 400 || httpResponse.statusCode == 401 || httpResponse.statusCode == 403 || httpResponse.statusCode == 404 {
             throw QuotaError.unauthorizedStatus(httpResponse.statusCode)
         }
         guard httpResponse.statusCode == 200 else {
@@ -4033,7 +4091,10 @@ actor QuotaService {
         case 403:
             throw QuotaError.invalidAPIKey(statusCode: 403)
         case 404:
-            throw QuotaError.schemaDriftStatus(404)
+            // AnySearch returns 404 for some retired dashboard sessions even
+            // though the same route returns 401 without authorization. Treat
+            // that provider-specific response as reauthentication, not schema drift.
+            throw QuotaError.unauthorizedStatus(404)
         default:
             break
         }

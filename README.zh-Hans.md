@@ -12,7 +12,7 @@ Quota Radar 是一个 macOS 状态栏应用，用来监控搜索 API 余额和 L
 ![Swift](https://img.shields.io/badge/swift-5.9-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-当前版本：`v0.4.8`。
+当前版本：`v0.4.9`。
 
 ## 界面预览
 
@@ -119,9 +119,9 @@ open build/QuotaRadar.dmg
 手动发布到 GitHub Release：
 
 ```bash
-gh release create v0.4.8 build/QuotaRadar.dmg build/QuotaRadar-WhiteLabel.dmg \
-  --title "Quota Radar v0.4.8" \
-  --notes "修复多服务商额度契约：AnySearch 控制台授权和最新额度响应包装、SerpAPI 官方续期日、LongCat Token 资源包到期时间、Codex 动态窗口，以及全服务商统一的已验证耗尽文案。"
+gh release create v0.4.9 build/QuotaRadar.dmg build/QuotaRadar-WhiteLabel.dmg \
+  --title "Quota Radar v0.4.9" \
+  --notes "恢复 AnySearch 刷新接口迁移后的自动会话轮换，并将 Claude 模型范围周额度作为总周额度的子层级展示。"
 ```
 
 未签名 DMG 不需要 Apple Developer Program，但 macOS Gatekeeper 可能拦截下载后的 app。只在信任源码和 release 的情况下安装。如果 macOS 提示 app 已损坏或无法打开：

@@ -1067,9 +1067,9 @@ enum Provider: String, Codable, CaseIterable, Identifiable {
             )
         case .claudeSubscription:
             return .verified(
-                lastVerifiedAt: "2026-06-23 13:06 CST",
-                evidence: "Organization usage plus subscription details",
-                fallbackBehavior: "Show observed five-hour and weekly windows only; schema drift asks for recalibration."
+                lastVerifiedAt: "2026-08-15 CST",
+                evidence: "Organization usage plus subscription details with global and explicitly scoped weekly windows",
+                fallbackBehavior: "Keep scoped weekly limits subordinate to the global window; schema drift asks for recalibration."
             )
         case .anthropicCredits:
             return .verified(
@@ -2906,6 +2906,7 @@ struct ProviderStats: Identifiable {
                     .map(Self.parsePercentWindows)
                     ?? []
             }
+            .filter { provider != .claudeSubscription || !$0.name.hasPrefix("week ") }
     }
 
     private static func parsePercentWindows(_ label: String) -> [(name: String, percent: Double)] {
@@ -3042,14 +3043,16 @@ struct ProviderStats: Identifiable {
     }
 
     private var keyQuotaPercentageWindows: [(name: String, percent: Double)] {
-        keyQuotaFiniteKeys.flatMap { key -> [(name: String, percent: Double)] in
-            if key.quotaText?.kind == .quotaWindows {
-                return key.quotaText?.quotaWindows.compactMap { window in
-                    Self.parsePercentWindow(name: window.name, percentText: window.percentText)
-                } ?? []
+        keyQuotaFiniteKeys
+            .flatMap { key -> [(name: String, percent: Double)] in
+                if key.quotaText?.kind == .quotaWindows {
+                    return key.quotaText?.quotaWindows.compactMap { window in
+                        Self.parsePercentWindow(name: window.name, percentText: window.percentText)
+                    } ?? []
+                }
+                return key.quotaLabel.map(Self.parsePercentWindows) ?? []
             }
-            return key.quotaLabel.map(Self.parsePercentWindows) ?? []
-        }
+            .filter { provider != .claudeSubscription || !$0.name.hasPrefix("week ") }
     }
 
     private var keyQuotaTightestWindowDisplay: String? {

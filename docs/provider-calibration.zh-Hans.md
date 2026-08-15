@@ -39,22 +39,22 @@ live acceptance 输出是脱敏矩阵。它会包含 provider 校准状态、最
 | --- | --- | --- |
 | OpenAI prepaid credits | 文档观察 2026-06-23；浏览器观察时 OpenAI Platform login missing。 | OpenAI API 文档公开的是 organization usage / cost reporting，例如 `GET/organization/costs`；未确认公开 prepaid credit balance API。不要在没有官方接口或登录态 Platform 余额字段前接入 OpenAI prepaid credits。 |
 | Claude Subscription OAuth usage/limits | 文档观察 2026-06-23。 | Anthropic Admin API 的 usage / cost reporting 属于组织管理员接口，需要 `org:admin`；它和个人 Claude Subscription 额度不是同一个口径。当前还没有观察到 Claude Code OAuth `usage/limits` 端点，所以 Claude Subscription 继续以 `claude.ai` organization usage 接口作为来源。 |
-| Claude web usage/prepaid credits | 浏览器实测 2026-06-23；Anthropic Credits live acceptance 于 2026-06-23 15:56 CST 通过。 | Kimi WebBridge live browser observation 观察到 `GET https://claude.ai/api/organizations/<org>/usage`、`GET https://claude.ai/api/organizations/<org>/prepaid/credits`、`GET https://claude.ai/api/organizations/<org>/overage_credit_grant`。usage 响应包含 `five_hour.utilization`、`seven_day.utilization`、`seven_day.resets_at`、`spend.used` 等字段；prepaid 响应包含 `amount`、`auto_reload_settings`、`last_paid_purchase_cents`、`pending_invoice_amount_cents` 等字段。Quota Radar 将 prepaid credits 作为独立 `Anthropic Credits` provider，使用 Claude 网页登录授权；本次脱敏复放通过已有 Claude Subscription 凭据返回 HTTP 200 并解析余额，直接 Anthropic Credits live acceptance 已确认有 quota 证据。 |
-| AnySearch billing overview | 2026-08-01 浏览器/frontend 和登录账号观察。 | `www.anysearch.com` 控制台仍保存 `search-template-auth-state`；refresh 为 `/api/ssuser/auth/refresh`，billing overview 实际落到 `/api/api/user/billing/overview`，返回套餐、used、remaining、total、reset period 和可选精确 reset。内嵌控制台在显示已用 503、剩余 497 时，主动 refresh 仍返回 HTTP 200 内业务码 `40114`（refresh token 已撤销）。因此 Quota Radar 必须先尝试 access token，只有 usage 实际 401 后才 refresh。 |
+| Claude web usage/prepaid credits | 2026-08-15 浏览器实测；Anthropic Credits live acceptance 于 2026-06-23 15:56 CST 通过。 | organization usage 响应除全局 `five_hour`、`seven_day` 外，还返回当前 `limits` 中 `kind=weekly_scoped`、`percent`、`resets_at` 和模型/使用面 scope metadata。登录态 usage 页面显示总周额度和已耗尽的 Fable scoped quota，没有显示 Opus 行，因此不能把内部 `nimbus_quill` 证据改名为 Opus。scoped window 只作为展示子项；全局额度仍可用时，不决定整个账号的可用状态。Prepaid credits 继续作为独立 `Anthropic Credits` provider。 |
+| AnySearch billing overview | 2026-08-15 实时接口与登录 App 验证。 | `www.anysearch.com` 控制台仍保存 `search-template-auth-state`；refresh 已迁移到 `/api/auth/refresh`，billing overview 为 `/api/user/billing/overview`。旧 `/api/ssuser/auth/refresh` 现在返回 HTTP 404。更新刷新地址后，已过期的 30 分钟 access token 成功轮换，billing 随即恢复 HTTP 200 和 Free Plan 额度。Quota Radar 仍先尝试 access token，仅在 billing 未授权后执行刷新。 |
 | SerpAPI account | 2026-08-01 登录态 `account.json` 证据。 | Free Plan 返回总额 250、已用 250、剩余 0、耗尽状态文案，以及官方 `plan_renewal_date = 2026-08-10`；不能用本地月初替代。 |
 | LongCat billing endpoints | 2026-08-01 登录态复放。 | 两个 dashboard billing endpoint 均返回 HTTP 200。Token Pack `expireTime` 是中国本地 `yyyy-MM-dd HH:mm:ss`；API 按量没有资源包到期。只靠业务 API key 仍不能查询。 |
 | Kimi WebBridge | 已连接，并完成 Claude 浏览器实测。 | Kimi WebBridge 可用于 Claude 校准；OpenAI prepaid credits 未完成实测，因为浏览器跳转到了 OpenAI Platform 登录页。 |
 
 ## 最新脱敏快照
 
-live acceptance 快照：2026-08-01 CST。
+live acceptance 快照：2026-08-15 CST。
 
 | Provider | 结果 | 脱敏证据 |
 | --- | --- | --- |
 | Querit | 通过 | 仍是可用、额度未知状态；账号接口只观察到 usage-only evidence，未观察到 limit/reset 字段。 |
 | AnySearch | 通过 | 已保存登录态 WebView 实测 HTTP 200；Free Plan，已用 503、剩余 497 / 1,000，每日重置为 2026-08-02 00:00 UTC。解析最新 `code/data/message` 包装后，应用显示“登录授权已保存”，并立即持久化套餐和额度。 |
 | SerpAPI | 通过 | HTTP 200；Free Plan 剩余 0 / 250，官方续期日为 2026-08-10。 |
-| Claude Subscription | 通过 | 观察到套餐、两个额度窗口、reset 字段和套餐到期 metadata。 |
+| Claude Subscription | 通过 | HTTP 200；观察到全局 5 小时、总周额度和 scoped Fable limit。Fable scoped 额度为零时仍作为总周额度下的子项展示，不会把仍有全局额度的账号判为耗尽，也没有推断 Opus 额度。 |
 | Anthropic Credits | 通过 | 已基于观察到的 `prepaid/credits` 形态接入 parser fixture 和 provider capability；通过保存的 Claude 网页登录授权脱敏复放返回 HTTP 200 并解析余额。直接 Anthropic Credits live acceptance 已通过，确认有 quota 证据且没有 reset / plan-end / window 字段。 |
 | Codex Subscription | 通过 | HTTP 200；Pro 20x 当前返回一个有效周窗口，剩余 92%，2026-08-08 14:39 CST 重置。已完全恢复的 5 小时窗口被接口省略，未被判为耗尽。 |
 | Kimi Subscription | 通过 | 观察到套餐到期 metadata 和可用额度状态；本次保存账号未暴露 reset window。 |

@@ -70,22 +70,18 @@ jobs:
             Quota Radar macOS build.
 
             What's new in ${{ github.ref_name }}:
-            - Recalibrates AnySearch for the current `code/data/message` billing envelope and uses the still-valid access token before attempting refresh-token rotation. A live logged-in save returned HTTP 200 with Free Plan, 503 used, and 497 / 1,000 remaining.
-            - Uses SerpAPI's official renewal date instead of an inferred month boundary.
-            - Parses LongCat Token Pack expiry as China-local time while keeping pay-as-you-go balance non-expiring.
-            - Keeps Codex dynamic quota windows accurate when a fully recovered five-hour window is omitted and only the weekly window remains.
-            - Adds provider-wide structured availability and unified exhausted wording only when every active credential has verified zero remaining.
-            - Makes filtered live acceptance fail when the requested provider has no saved credential, preventing empty Release QA runs from passing.
+            - Restores AnySearch automatic session rotation after the provider moved its refresh endpoint to `/api/auth/refresh`; an expired 30-minute access token was verified to rotate and return billing HTTP 200 without another login.
+            - Uses AnySearch's current billing endpoint and handles provider-specific 404 responses as refresh or reauthentication signals.
+            - Parses Claude's explicitly returned model- and surface-scoped weekly limits, including the current Fable 5 scoped quota, without inferring Opus from internal buckets.
+            - Groups Claude model-scoped weekly quotas beneath the overall weekly quota and automatically reveals the hierarchy when those limits are present.
             - Credential values remain local and are never included in diagnostics or release artifacts.
             - This release includes the standard Swift macOS DMG with update checks and a WhiteLabel DMG without upstream GitHub updater endpoints.
 
             中文说明：
-            - AnySearch 按最新 `code/data/message` 额度包装重新校准，并在轮换 refresh token 前先使用仍有效的 access token；登录态保存实测 HTTP 200，Free Plan 已用 503、剩余 497 / 1,000。
-            - 使用 SerpAPI 官方续期日，不再推算本地月初。
-            - 按中国本地时间解析 LongCat Token 资源包到期时间，并保持 API 按量余额无到期状态。
-            - Codex 完全恢复的 5 小时窗口被省略、仅返回周窗口时，仍保持动态窗口准确，不误判耗尽。
-            - 为所有服务商增加结构化可用状态；只有全部活跃凭据都明确验证剩余为零时，才显示统一耗尽文案。
-            - 指定服务商没有已保存凭据时，live acceptance 会失败，避免空跑 Release QA 假绿。
+            - AnySearch 刷新接口迁移到 `/api/auth/refresh` 后恢复自动会话轮换；已实测过期的 30 分钟 access token 无需重新登录即可轮换并恢复 billing HTTP 200。
+            - 使用 AnySearch 当前 billing 接口，并将服务商特定的 404 识别为刷新或重新认证信号。
+            - 解析 Claude 明确返回的模型和使用面周额度，包括当前 Fable 5 scoped quota，不根据内部额度桶推断 Opus。
+            - 将 Claude 模型范围周额度归入总周额度下方，并在存在这些额度时自动展示层级。
             - 凭据值只保留在本机，不会进入诊断或发布产物。
             - 本次同时提供带更新检查的标准 Swift macOS DMG，以及不包含上游 GitHub 更新地址的 WhiteLabel DMG。
 

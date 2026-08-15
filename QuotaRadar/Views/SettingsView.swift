@@ -2443,10 +2443,29 @@ struct ProviderQuotaMonitorRow: View {
     @State private var showingReauth = false
     @State private var codexResetConfirmationKey: APIKey?
 
+    init(stat: ProviderStats, monitor: QuotaMonitor) {
+        self.stat = stat
+        self.monitor = monitor
+        let provider = stat.provider
+        _isExpanded = State(initialValue: provider == .claudeSubscription && stat.keys.contains { key in
+            key.quotaWindowDetails.contains { window in
+                window.name.hasPrefix("week ")
+            }
+        })
+    }
+
     private var provider: Provider { stat.provider }
     private var keys: [APIKey] { stat.sortedMonitoringKeysByCurrentQuota }
     private var isRefreshing: Bool { monitor.refreshingProviders.contains(provider) }
     private var canRefresh: Bool { keys.contains { $0.isActive && !$0.key.isEmpty } }
+
+    private var shouldAutoExpandModelQuotas: Bool {
+        provider == .claudeSubscription && keys.contains { key in
+            key.quotaWindowDetails.contains { window in
+                window.name.hasPrefix("week ")
+            }
+        }
+    }
 
     private var keyQuotaText: String {
         keys.isEmpty ? L10n.t(.notAvailableShort) : stat.keyQuotaDisplayText
@@ -2770,8 +2789,13 @@ struct ProviderQuotaMonitorRow: View {
             providerSummaryRiskAccent
         }
         .onAppear {
-            if navigationStore.focusedProvider == provider {
+            if navigationStore.focusedProvider == provider || shouldAutoExpandModelQuotas {
                 isExpanded = true
+            }
+        }
+        .onChange(of: shouldAutoExpandModelQuotas) { _, hasModelQuotas in
+            if hasModelQuotas {
+                withAnimation(settingsCollapseAnimation) { isExpanded = true }
             }
         }
         .onChange(of: navigationStore.focusedProvider) { _, _ in
@@ -3334,6 +3358,32 @@ struct ProviderQuotaAccountQuotaWindows: View {
         key.quotaWindowDetails.filter { !$0.name.isEmpty && !$0.percentText.isEmpty }
     }
 
+    private var claudeWeeklyModelWindows: [QuotaWindowText] {
+        guard key.provider == .claudeSubscription,
+              visibleWindows.contains(where: { $0.name == "week" }) else {
+            return []
+        }
+        return visibleWindows.filter { $0.name.hasPrefix("week ") }
+    }
+
+    private var primaryWindows: [QuotaWindowText] {
+        guard !claudeWeeklyModelWindows.isEmpty else { return visibleWindows }
+        return visibleWindows.filter { !$0.name.hasPrefix("week ") }
+    }
+
+    private var claudeWeeklyResetAt: Date? {
+        visibleWindows.first(where: { $0.name == "week" })?.resetAt
+    }
+
+    private func modelDetailText(for window: QuotaWindowText) -> String? {
+        guard let resetAt = window.resetAt else { return nil }
+        if let parentResetAt = claudeWeeklyResetAt,
+           abs(resetAt.timeIntervalSince(parentResetAt)) < 1 {
+            return nil
+        }
+        return window.detailValueText
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if visibleWindows.isEmpty {
@@ -3343,18 +3393,35 @@ struct ProviderQuotaAccountQuotaWindows: View {
                     tint: key.status.color
                 )
             } else {
-                ForEach(Array(visibleWindows.enumerated()), id: \.offset) { index, window in
+                ForEach(Array(primaryWindows.enumerated()), id: \.offset) { index, window in
                     if index > 0 {
                         Divider()
                             .opacity(0.45)
                     }
 
                     ProviderQuotaAccountQuotaWindowRow(
-                        periodText: L10n.quotaPeriodTitle(window.name),
+                        periodText: key.provider == .claudeSubscription && window.name == "week"
+                            ? L10n.quotaPeriodGroupTitle(window.name)
+                            : L10n.quotaPeriodTitle(window.name),
                         valueText: window.percentText,
                         detailText: window.detailValueText,
                         tint: key.status.color
                     )
+
+                    if key.provider == .claudeSubscription && window.name == "week" {
+                        VStack(spacing: 2) {
+                            ForEach(Array(claudeWeeklyModelWindows.enumerated()), id: \.offset) { modelIndex, modelWindow in
+                                ProviderQuotaAccountModelQuotaRow(
+                                    modelText: L10n.quotaModelScopeTitle(modelWindow.name),
+                                    valueText: modelWindow.percentText,
+                                    detailText: modelDetailText(for: modelWindow),
+                                    tint: key.status.color,
+                                    isLast: modelIndex == claudeWeeklyModelWindows.count - 1
+                                )
+                            }
+                        }
+                        .padding(.top, 1)
+                    }
                 }
             }
 
@@ -3382,6 +3449,49 @@ struct ProviderQuotaAccountQuotaWindows: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct ProviderQuotaAccountModelQuotaRow: View {
+    let modelText: String
+    let valueText: String
+    let detailText: String?
+    let tint: Color
+    let isLast: Bool
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(isLast ? "└" : "├")
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+
+                Text(modelText)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
+            }
+            .frame(width: 62, alignment: .leading)
+
+            ProviderQuotaAccountValueText(
+                value: valueText,
+                tint: tint.opacity(0.86),
+                weight: .medium,
+                design: .rounded,
+                minimumScaleFactor: 0.70
+            )
+            .frame(width: 72, alignment: .leading)
+
+            ProviderQuotaAccountValueText(
+                value: detailText ?? "",
+                tint: Color.secondary.opacity(0.72),
+                weight: .regular,
+                minimumScaleFactor: 0.50
+            )
+            .layoutPriority(1)
+        }
+        .frame(maxWidth: .infinity, minHeight: 21, alignment: .leading)
     }
 }
 

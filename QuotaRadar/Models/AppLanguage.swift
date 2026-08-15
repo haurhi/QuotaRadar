@@ -834,6 +834,25 @@ enum L10n {
     }
 
     static func quotaPeriodTitle(_ title: String, language: AppLanguage = AppLanguageStore.shared.language) -> String {
+        if title.hasPrefix("week ") {
+            let modelName = String(title.dropFirst("week ".count))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !modelName.isEmpty {
+                switch language {
+                case .english:
+                    return "\(modelName) Weekly"
+                case .simplifiedChinese:
+                    return "\(modelName) 周额度"
+                case .traditionalChinese:
+                    return "\(modelName) 週額度"
+                case .japanese:
+                    return "\(modelName) 週間"
+                case .korean:
+                    return "\(modelName) 주간"
+                }
+            }
+        }
+
         switch language {
         case .english:
             switch title {
@@ -957,6 +976,31 @@ enum L10n {
         default:
             return title
         }
+    }
+
+    static func quotaPeriodGroupTitle(_ title: String, language: AppLanguage = AppLanguageStore.shared.language) -> String {
+        guard title == "week" else {
+            return quotaPeriodTitle(title, language: language)
+        }
+
+        switch language {
+        case .english:
+            return "Weekly quota"
+        case .simplifiedChinese:
+            return "周额度"
+        case .traditionalChinese:
+            return "週額度"
+        case .japanese:
+            return "週間クォータ"
+        case .korean:
+            return "주간 할당량"
+        }
+    }
+
+    static func quotaModelScopeTitle(_ title: String) -> String {
+        guard title.hasPrefix("week ") else { return title }
+        return String(title.dropFirst("week ".count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static func quotaWindowDisplay(_ name: String, _ percentageText: String, language: AppLanguage = AppLanguageStore.shared.language) -> String {
